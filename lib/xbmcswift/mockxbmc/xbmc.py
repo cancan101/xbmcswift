@@ -22,3 +22,5 @@ def translatePath(path):
 
     return os.path.join(temp_dir, *parts)
     
+def log(logMessage):
+    print logMessage

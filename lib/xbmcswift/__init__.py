@@ -9,10 +9,11 @@ try:
     #import xbmcvfs
 except ImportError:
     from mock import MockClass
-    from mockxbmc.xbmc import translatePath
+    from mockxbmc.xbmc import translatePath, log
     xbmc = MockClass()
     xbmc.translatePath = translatePath
-
+    xbmc.log = log
+    
     xbmcgui = MockClass()
 
     xbmcplugin = MockClass()
