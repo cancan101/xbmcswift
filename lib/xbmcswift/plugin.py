@@ -5,12 +5,15 @@ from common import urlparse
 from common import parse_qs, clean_dict
 from urls import UrlRule, NotFoundException, AmbiguousUrlException
 from urllib import urlencode
+from types import FunctionType
+from datetime import timedelta
 
 #from . import xbmc
 #from . import xbmcgui
 #from . import xbmcplugin
 #from . import xbmcaddon
 from xbmcswift import xbmc, xbmcgui, xbmcplugin, xbmcaddon
+from xbmcswift.cache import get_cached_data, put_cached_data_as_json
 #import xbmc
 #import xbmcgui
 #import xbmcplugin
@@ -110,6 +113,9 @@ class Plugin(object):
         self._routes.append(rule)
 
     def url_for(self, endpoint, **items):
+        if type(endpoint) is FunctionType:
+            endpoint = endpoint.__name__
+            
         if endpoint not in self._view_functions.keys():
             raise NotFoundException, '%s doesn\'t match any known patterns.' % endpoint
 
@@ -128,9 +134,41 @@ class Plugin(object):
                 continue
             return view_func(**items)
         raise NotFoundException
-
+    
+    def cacheReturn(self, TTL=timedelta(days=1), name=None):
+        '''A decorator to cache the results of a function call. The result much be of string type.'''
+        def decorator(f):
+            cache_name = name or f.__name__
+            
+            json_fn_base = '%s.json' % cache_name
+            json_fn = self.cache_fn(json_fn_base, ensurePath=True)
+            timestamp_fn = self.cache_fn('%s.ts' % json_fn_base)
+            
+            def decorator_impl(*args):
+                _json = get_cached_data(json_fn, timestamp_fn, TTL)
+                if _json is None:
+                    _json = {}
+                
+                key = str(tuple(args))
+                if key in _json:
+                    xbmc.log('XBMC Swift cache hit for %s w/ %s' % (cache_name, key))
+                    return _json[key]
+                else:
+                    xbmc.log('XBMC Swift cache miss for %s w/ %s' % (cache_name, key))
+                
+                _json[key] =_data = f(*args)
+                    
+                put_cached_data_as_json(_json, json_fn, timestamp_fn)
+                
+                return _data    
+            
+            return decorator_impl
+        return decorator
+    
     ## XBMC stuff -------------------------------------------------------------
-    def cache_fn(self, path):
+    def cache_fn(self, path, ensurePath=False):
+        if ensurePath and not os.path.exists(self._cache_path):
+            os.makedirs(self._cache_path)
         #if not os.path.exists(self._cache_path):
             #os.mkdir(self._cache_path)
         return os.path.join(self._cache_path, path)
