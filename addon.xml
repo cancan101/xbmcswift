@@ -2,6 +2,7 @@
 <addon id="script.module.xbmcswift" name="xbmcswift" version="0.2.0" provider-name="Jonathan Beluch (jbel)">
   <requires>
     <import addon="xbmc.python" version="2.0"/>
+    <import addon="script.module.simplejson" version="2.0.10"/>
   </requires>
   <extension point="xbmc.python.module" library="lib"/>
   <extension point="xbmc.addon.metadata">
